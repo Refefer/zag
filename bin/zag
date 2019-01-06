@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import imp
 import sys
 import argparse
@@ -20,25 +21,34 @@ def build_parser():
     subparsers = parser.add_subparsers(dest="command")
     run = subparsers.add_parser("run", help="Runs workflow")
 
-    run.add_argument("--stage"
-        action='append',
+    run.add_argument("--stage",
+        nargs="+",
         help="Run the specific stages")
 
     run.add_argument("--tags",
-        action='append',
+        nargs="+",
         help="Run the tags specified")
 
     run.add_argument("--exclude-tags",
         dest='excludeTags',
-        action='append',
-        default=[],
+        nargs="+",
         help="Excludes the tag from running")
+
+    p = subparsers.add_parser("list", help="List Stages")
+
+    p.add_argument("--stages",
+        action="store_true",
+        help="Lists stages")
+
+    p.add_argument("--tags",
+        action="store_true",
+        help="Lists all tags")
 
     return parser
 
 def setupLogging(fn=None, sout=sys.stdout, loglevel=logging.INFO):
     # To a file and to stdout
-    fmt = "%(asctime)s %(name)s %(levelname)s %(process)d-%(threadName)s %(module)s : %(lineno)s - %(message)s"
+    fmt = "%(asctime)s %(name)s %(levelname)s - %(message)s"
 
     kwargs = dict(format=fmt, level=loglevel)
     if fn is not None:
@@ -49,27 +59,25 @@ def setupLogging(fn=None, sout=sys.stdout, loglevel=logging.INFO):
         logging.root.addHandler(logging.StreamHandler(sout))
 
 def build_predicate(args):
-    preds = []
+    p = []
     if args.tags is not None:
-        p = AllTags(set(args.tags))
+        p.append(AllTags(set(args.tags)))
 
     if args.excludeTags is not None:
-        preds.append(Not(AnyTags(args.excludeTags)))
+        p.append(Not(AnyTags(args.excludeTags)))
 
-    if args.stages is not None:
-        preds.append(StageNames(args.stages))
+    if args.stage is not None:
+        p.append(StageNames(args.stage))
 
     if len(p) == 0:
         return All()
+
     if len(p) == 1:
         return p[0]
 
     return And(p)
 
-def main(args):
-    setupLogging(args.logFile)
-    workflow = imp.load_source('workflow', args.workflow)
-
+def run(args, workflow):
     graph = Graph()
     stages = {}
     for workflow in workflow.workflows:
@@ -89,5 +97,39 @@ def main(args):
         else:
             logging.info("Skipping stage %s", stage.name)
 
+def list_cmd(args, workflow):
+    names = set()
+    tags = set()
+    for workflow in workflow.workflows:
+        workflow = workflow.apply_config({})
+        for stage in workflow.resolve_stages():
+            names.add(stage.name)
+            tags.update(stage.tags)
+
+    if args.stages:
+        print("Stages")
+        print("------")
+        for name in sorted(names):
+            print(" -", name)
+
+        print()
+
+    if args.tags:
+        print("Tags")
+        print("------")
+        for tag in sorted(tags):
+            print(" -", tag)
+
+
+def main(args):
+    setupLogging(args.logFile)
+    workflow = imp.load_source('workflow', args.workflow)
+
+    if args.command == 'run':
+        run(args, workflow)
+    if args.command == 'list':
+        list_cmd(args, workflow)
+
+    
 if __name__ == '__main__':
     main(build_parser().parse_args())
