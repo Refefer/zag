@@ -1,0 +1,93 @@
+#!/usr/bin/env python
+import imp
+import sys
+import argparse
+import logging
+
+from zag import Sequence
+from zag.predicate import *
+from zag.graph import Graph
+
+def build_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("workflow",
+        help="Workflow file to use")
+
+    parser.add_argument("--log-file",
+        dest="logFile", 
+        help="If provided, logs to the provided file")
+
+    subparsers = parser.add_subparsers(dest="command")
+    run = subparsers.add_parser("run", help="Runs workflow")
+
+    run.add_argument("--stage"
+        action='append',
+        help="Run the specific stages")
+
+    run.add_argument("--tags",
+        action='append',
+        help="Run the tags specified")
+
+    run.add_argument("--exclude-tags",
+        dest='excludeTags',
+        action='append',
+        default=[],
+        help="Excludes the tag from running")
+
+    return parser
+
+def setupLogging(fn=None, sout=sys.stdout, loglevel=logging.INFO):
+    # To a file and to stdout
+    fmt = "%(asctime)s %(name)s %(levelname)s %(process)d-%(threadName)s %(module)s : %(lineno)s - %(message)s"
+
+    kwargs = dict(format=fmt, level=loglevel)
+    if fn is not None:
+        kwargs['filename'] = fn
+
+    logging.basicConfig(**kwargs)
+    if sout is not None:
+        logging.root.addHandler(logging.StreamHandler(sout))
+
+def build_predicate(args):
+    preds = []
+    if args.tags is not None:
+        p = AllTags(set(args.tags))
+
+    if args.excludeTags is not None:
+        preds.append(Not(AnyTags(args.excludeTags)))
+
+    if args.stages is not None:
+        preds.append(StageNames(args.stages))
+
+    if len(p) == 0:
+        return All()
+    if len(p) == 1:
+        return p[0]
+
+    return And(p)
+
+def main(args):
+    setupLogging(args.logFile)
+    workflow = imp.load_source('workflow', args.workflow)
+
+    graph = Graph()
+    stages = {}
+    for workflow in workflow.workflows:
+        workflow = workflow.apply_config({})
+        for stage in workflow.resolve_stages():
+            stages[stage.name] = stage
+            graph.add_node(stage.name)
+            for inbound in stage.depends_on:
+                graph.add_edge(inbound, stage.name)
+
+    predicate = build_predicate(args)
+    for name in graph.toposort():
+        stage = stages[name]
+        if predicate.evaluate(stage):
+            logging.info("Running stage %s", stage.name)
+            stage.run()
+        else:
+            logging.info("Skipping stage %s", stage.name)
+
+if __name__ == '__main__':
+    main(build_parser().parse_args())
