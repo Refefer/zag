@@ -106,14 +106,18 @@ def run(args, workflow):
                 graph.add_edge(inbound, stage.name)
 
     predicate = build_predicate(args)
+    stages_to_run = []
     for name in graph.toposort():
         stage = stages[name]
-        print(stage.tags)
         if predicate.evaluate(stage):
-            logging.info("Running stage %s", stage.name)
-            stage.run()
+            logging.info("+ `%s`", stage.name)
+            stages_to_run.append(stage)
         else:
-            logging.info("Skipping stage %s", stage.name)
+            logging.info("- `%s`", stage.name)
+
+    for stage in stages_to_run:
+        logging.info("Running stage %s", stage.name)
+        stage.run()
 
 def list_cmd(args, workflow):
     names = set()

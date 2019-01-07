@@ -9,20 +9,24 @@ shell = ShellTask(
     script="ls -al")
 
 workflows = [
-    Sequence("main", stages=[
-        Stage("print-date",
-            bar,
-            args=[
-                ("--date",)
-            ],
-            tags=["date"]),
+    Sequence("main", 
+        config={
+            "list_path": "foo"
+        },
+        stages=[
+            Stage("print-date",
+                bar,
+                args=[
+                    ("--date",)
+                ],
+                tags=["date"]),
 
-        Stage("list-dir",
-            shell,
-            args=[
-                ("$PATH/$list_path", )
-            ],
-            tags=["list-dir"])
-    ])
+            Stage("list-dir",
+                shell,
+                args=[
+                    ("$PATH/$list_path", )
+                ],
+                tags=["list-dir"])
+        ])
 ]
 
