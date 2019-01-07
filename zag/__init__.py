@@ -1,7 +1,7 @@
 import re
 import copy
 
-from .configable import Configable, apply_config
+from .configable import Configable, derive_config
 from .stage import Stage, PyTask, ShellTask
 
 class Sequence(Configable):
@@ -18,16 +18,16 @@ class Sequence(Configable):
     def get_config(self):
         return self.config.copy()
 
-    def apply_config(self, config):
+    def derive_config(self, config, throw=True):
         new_stages = []
         for stage in self.stages:
             stage_config = stage.get_config()
             stage_config.update(self.config)
             stage_config.update(config)
-            new_stages.append(stage.apply_config(stage_config))
+            new_stages.append(stage.derive_config(stage_config, throw))
 
-        tags = apply_config(self.tags, config)
-        depends_on = apply_config(self.tags, config)
+        tags = derive_config(self.tags, config)
+        depends_on = derive_config(self.tags, config, throw)
         return Sequence(self.name, {}, new_stages, depends_on, tags)
     
     def _get_stages(self):
@@ -53,3 +53,4 @@ class Sequence(Configable):
             stage.tags.add(self.name)
             stage.depends_on.update(self.depends_on)
             yield stage
+

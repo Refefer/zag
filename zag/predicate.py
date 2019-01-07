@@ -8,7 +8,7 @@ class AllTags(Predicate):
         self.tags = set(tags)
 
     def evaluate(self, stage):
-        return self.tags in stage.tags
+        return self.tags.issubset(stage.tags)
 
 class AnyTags(Predicate):
     def __init__(self, tags):

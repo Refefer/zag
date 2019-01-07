@@ -1,7 +1,7 @@
 from zag import PyTask, ShellTask, Stage, Sequence
 
 bar = PyTask(
-    path="foo/bar.py",
+    path="$PATH/foo/bar.py",
     entrypoint="main",
     parser="build_parser")
 
@@ -16,8 +16,12 @@ workflows = [
                 ("--date",)
             ],
             tags=["date"]),
+
         Stage("list-dir",
             shell,
+            args=[
+                ("$PATH/$list_path", )
+            ],
             tags=["list-dir"])
     ])
 ]

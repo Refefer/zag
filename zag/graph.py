@@ -1,4 +1,5 @@
 from collections import defaultdict, deque
+
 class Graph(object):
     def __init__(self):
         self.nodes = {}
