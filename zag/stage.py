@@ -6,7 +6,6 @@ import shlex
 import imp
 
 from .configable import Configable
-from .arguments import Argument
 
 class Task(Configable):
     pass
@@ -34,9 +33,6 @@ class Stage(Configable):
         args = []
         for argset in self.args:
             for arg in argset:
-                if isinstance(arg, Argument):
-                    arg = arg.get()
-
                 assert isinstance(arg, basestring)
                 args.append(arg)
 

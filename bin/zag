@@ -51,6 +51,9 @@ def build_parser():
         help="Lists all tags")
 
     p = subparsers.add_parser("visualize", help="Emits a dot file showing workflows")
+    p = subparsers.add_parser("info", help="Returns information about the requested stage")
+    p.add_argument("stage",
+        help="Name of the stage to return info about")
 
     return parser
 
@@ -158,6 +161,21 @@ def vis_cmd(args, workflow):
 
     print("}")
 
+def info_cmd(args, workflow):
+    for workflow in workflow.workflows:
+        workflow = workflow.derive_config(build_config(args))
+        for stage in workflow.resolve_stages():
+            if stage.name == args.stage:
+                print("Name:", stage.name)
+                print("Args:")
+                for arg in stage.args:
+                    print("  `{}`".format(' '.join(arg)))
+
+                print()
+                deps = ('`{}`'.format(d) for d in stage.depends_on)
+                print("Depends on: ", ' '.join(deps))
+                print("Tags: ", ' '.join(stage.tags))
+
 def main(args):
     setupLogging(args.logFile)
     workflow = imp.load_source('workflow', args.workflow)
@@ -168,6 +186,8 @@ def main(args):
         list_cmd(args, workflow)
     if args.command == 'visualize':
         vis_cmd(args, workflow)
+    if args.command == 'info':
+        info_cmd(args, workflow)
     
 if __name__ == '__main__':
     main(build_parser().parse_args())
