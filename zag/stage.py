@@ -16,10 +16,17 @@ class PyTask(Task):
         self.entrypoint = entrypoint
         self.parser = parser
 
+    def __unicode__(self):
+        return u"Python[Path=`{}`,Entrypoint=`{}`,parser=`{}`]".format(
+                self.path, self.entrypoint, self.parser)
+
 class ShellTask(Task):
-    def __init__(self, script, args=()):
+    def __init__(self, script):
         self.script = script
-        self.args = list(args)
+
+    def __unicode__(self):
+        return u"Shell[Script={}]".format(
+                self.path, self.entrypoint, self.parser)
 
 class Stage(Configable):
     def __init__(self, name, task, depends_on=(), args=(), tags=()):

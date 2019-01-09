@@ -167,6 +167,7 @@ def info_cmd(args, workflow):
         for stage in workflow.resolve_stages():
             if stage.name == args.stage:
                 print("Name:", stage.name)
+                print("Task:", unicode(stage.task))
                 print("Args:")
                 for arg in stage.args:
                     print("  `{}`".format(' '.join(arg)))
