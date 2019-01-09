@@ -50,6 +50,8 @@ def build_parser():
         action="store_true",
         help="Lists all tags")
 
+    p = subparsers.add_parser("visualize", help="Emits a dot file showing workflows")
+
     return parser
 
 def setupLogging(fn=None, sout=sys.stdout, loglevel=logging.INFO):
@@ -87,7 +89,7 @@ def build_config(args):
     settings = {
         "PATH": os.path.dirname(os.path.abspath(args.workflow))
     }
-    if args.set is not None:
+    if getattr(args, 'set', None) is not None:
         for k, v in args.set:
             settings[k] = v
 
@@ -142,6 +144,19 @@ def list_cmd(args, workflow):
         for tag in sorted(tags):
             print(" -", tag)
 
+def vis_cmd(args, workflow):
+    print("digraph workflow {")
+    config = build_config(args)
+    names = {}
+    for workflow in workflow.workflows:
+        workflow = workflow.derive_config(config)
+        for stage in workflow.resolve_stages():
+            names[stage.name] = len(names)
+            print('{} [label="{}"]'.format(names[stage.name], stage.name))
+            for inbound in stage.depends_on:
+                print("{} -> {}".format(names[inbound], names[stage.name]))
+
+    print("}")
 
 def main(args):
     setupLogging(args.logFile)
@@ -151,6 +166,8 @@ def main(args):
         run(args, workflow)
     if args.command == 'list':
         list_cmd(args, workflow)
+    if args.command == 'visualize':
+        vis_cmd(args, workflow)
     
 if __name__ == '__main__':
     main(build_parser().parse_args())

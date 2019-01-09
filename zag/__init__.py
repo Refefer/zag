@@ -26,9 +26,10 @@ class Sequence(Configable):
             stage_config.update(config)
             new_stages.append(stage.derive_config(stage_config, throw))
 
+        name = derive_config(self.name, config)
         tags = derive_config(self.tags, config)
         depends_on = derive_config(self.tags, config, throw)
-        return Sequence(self.name, {}, new_stages, depends_on, tags)
+        return Sequence(name, {}, new_stages, depends_on, tags)
     
     def _get_stages(self):
         for stage in self.stages:
@@ -48,7 +49,6 @@ class Sequence(Configable):
                     yield stage
 
         for stage in _get_stages():
-            stage.name = '{}/{}'.format(self.name, stage.name)
             stage.tags.update(self.tags)
             stage.tags.add(self.name)
             stage.depends_on.update(self.depends_on)
